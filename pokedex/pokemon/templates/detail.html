@@ -1,0 +1,465 @@
+{% load static %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ pokemon.name|capfirst }} - Pokedex Detail</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            /* High Contrast Color Tokens */
+            --bg-body: #F1F5F9;
+            --surface-color: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            --primary-color: #2563EB;
+            
+            /* Enhanced Type Colors for Legibility */
+            --type-normal: #9CA3AF; --type-fire: #EF4444; --type-water: #3B82F6;
+            --type-electric: #EAB308; --type-grass: #22C55E; --type-ice: #67E8F9;
+            --type-fighting: #B91C1C; --type-poison: #9333EA; --type-ground: #D97706;
+            --type-flying: #818CF8; --type-psychic: #F43F5E; --type-bug: #84CC16;
+            --type-rock: #A16207; --type-ghost: #6D28D9; --type-dragon: #4F46E5;
+            --type-dark: #334155; --type-steel: #94A3B8; --type-fairy: #F472B6;
+
+            --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-body);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 24px;
+            color: var(--text-main);
+        }
+
+        /* --- Clear Modal Card --- */
+        .detail-main {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--surface-color);
+            border-radius: 40px; 
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0px 20px 40px rgba(0, 0, 0, 0.08);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        /* --- Top Navigation --- */
+        .header-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .back-btn-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: #F8FAFC;
+            border: 1px solid var(--border-color);
+            transition: var(--transition-smooth);
+        }
+
+        .back-btn-wrap:hover {
+            background-color: #F1F5F9;
+            transform: scale(1.05);
+        }
+
+        .back-btn {
+            width: 24px;
+            height: 24px;
+            filter: brightness(0); /* High contrast black */
+            opacity: 0.7;
+        }
+
+        .name {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .pokemon-id-wrap {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            background-color: #EFF6FF;
+            padding: 8px 16px;
+            border-radius: 999px;
+        }
+
+        /* --- Hero Image & Navigation --- */
+        .featured-img {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+
+        .arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: #F8FAFC;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            transition: var(--transition-smooth);
+            z-index: 10;
+        }
+
+        .arrow:hover {
+            transform: scale(1.1);
+            background-color: #F1F5F9;
+        }
+
+        .arrow img {
+            width: 24px;
+            filter: brightness(0); /* High contrast black */
+            opacity: 0.7;
+        }
+
+        .detail-img-wrapper {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            position: relative;
+        }
+
+        .detail-img-wrapper::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            width: 60%;
+            height: 20px;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.12) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+            animation: shadowBreathe 4s infinite ease-in-out;
+        }
+
+        .detail-img-wrapper img {
+            width: clamp(160px, 40vw, 260px);
+            z-index: 1;
+            filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.15));
+            animation: floatImage 4s infinite ease-in-out;
+        }
+
+        /* --- Badges (Types) --- */
+        .power-wrapper {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .type {
+            padding: 8px 24px;
+            border-radius: 999px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #FFFFFF;
+            text-transform: capitalize;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .type.normal { background-color: var(--type-normal); }
+        .type.fire { background-color: var(--type-fire); }
+        .type.water { background-color: var(--type-water); }
+        .type.electric { background-color: var(--type-electric); color: #000; }
+        .type.grass { background-color: var(--type-grass); }
+        .type.ice { background-color: var(--type-ice); color: #000; }
+        .type.fighting { background-color: var(--type-fighting); }
+        .type.poison { background-color: var(--type-poison); }
+        .type.ground { background-color: var(--type-ground); }
+        .type.flying { background-color: var(--type-flying); }
+        .type.psychic { background-color: var(--type-psychic); }
+        .type.bug { background-color: var(--type-bug); }
+        .type.rock { background-color: var(--type-rock); }
+        .type.ghost { background-color: var(--type-ghost); }
+        .type.dragon { background-color: var(--type-dragon); }
+        .type.dark { background-color: var(--type-dark); }
+        .type.steel { background-color: var(--type-steel); }
+        .type.fairy { background-color: var(--type-fairy); }
+
+        /* --- Info Section --- */
+        .about-text {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-main);
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .pokemon-detail-wrapper {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: stretch;
+            background-color: #F8FAFC; /* Clean light gray */
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 24px 20px;
+            margin-bottom: 32px;
+        }
+
+        .pokemon-detail-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .pokemon-detail-wrap:last-child { border-right: none; }
+
+        .pokemon-detail {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .pokemon-detail img {
+            width: 20px;
+            filter: brightness(0); /* Forces icon to be highly visible */
+            opacity: 0.6;
+        }
+
+        .pokemon-detail.move {
+            flex-direction: column;
+            gap: 4px;
+            text-transform: capitalize;
+            text-align: center;
+        }
+
+        .caption-fonts {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pokemon-description {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 0 16px;
+        }
+
+        /* --- Bright Progress Bars (Stats) --- */
+        .stats-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .stats-wrap {
+            display: grid;
+            grid-template-columns: 140px 40px 1fr;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .stats-wrap .stats {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-align: right;
+            text-transform: capitalize;
+        }
+
+        .stats-wrap p:nth-of-type(2) {
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .progress-bar {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 14px;
+            border-radius: 999px;
+            background-color: #E2E8F0; /* High contrast track */
+            overflow: hidden;
+        }
+
+        .progress-bar::-webkit-progress-bar {
+            background-color: #E2E8F0;
+            border-radius: 999px;
+        }
+
+        .progress-bar::-webkit-progress-value {
+            border-radius: 999px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .progress-bar::-moz-progress-bar {
+            border-radius: 999px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* High Visibility Dynamic stat bar colors */
+        .stats-wrap[data-stat="hp"] .progress-bar::-webkit-progress-value { background-color: #EF4444; }
+        .stats-wrap[data-stat="hp"] .progress-bar::-moz-progress-bar { background-color: #EF4444; }
+        
+        .stats-wrap[data-stat="attack"] .progress-bar::-webkit-progress-value { background-color: #F59E0B; }
+        .stats-wrap[data-stat="attack"] .progress-bar::-moz-progress-bar { background-color: #F59E0B; }
+        
+        .stats-wrap[data-stat="defense"] .progress-bar::-webkit-progress-value { background-color: #3B82F6; }
+        .stats-wrap[data-stat="defense"] .progress-bar::-moz-progress-bar { background-color: #3B82F6; }
+        
+        .stats-wrap[data-stat="special-attack"] .progress-bar::-webkit-progress-value { background-color: #EC4899; }
+        .stats-wrap[data-stat="special-attack"] .progress-bar::-moz-progress-bar { background-color: #EC4899; }
+        
+        .stats-wrap[data-stat="special-defense"] .progress-bar::-webkit-progress-value { background-color: #10B981; }
+        .stats-wrap[data-stat="special-defense"] .progress-bar::-moz-progress-bar { background-color: #10B981; }
+        
+        .stats-wrap[data-stat="speed"] .progress-bar::-webkit-progress-value { background-color: #8B5CF6; }
+        .stats-wrap[data-stat="speed"] .progress-bar::-moz-progress-bar { background-color: #8B5CF6; }
+
+        /* --- Animations --- */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes floatImage {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-16px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes shadowBreathe {
+            0% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(0.85); opacity: 0.3; }
+            100% { transform: scale(1); opacity: 0.6; }
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 600px) {
+            body { padding: 16px; }
+            .detail-main { padding: 32px 24px; border-radius: 32px; }
+            .header-wrapper { flex-wrap: wrap; justify-content: center; gap: 16px; }
+            .name { order: 3; width: 100%; font-size: 2.2rem; }
+            .pokemon-detail-wrapper { flex-direction: column; gap: 16px; background: transparent; border: none; padding: 0; }
+            .pokemon-detail-wrap { border-right: none; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
+            .pokemon-detail-wrap:last-child { border-bottom: none; padding-bottom: 0; }
+            .stats-wrap { grid-template-columns: 100px 30px 1fr; gap: 12px; }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="detail-main">
+        <header class="header-wrapper">
+            <a href="{% url 'index' %}" class="back-btn-wrap">
+                <img src="{% static 'assets/back-to-home.svg' %}" alt="back" class="back-btn">
+            </a>
+            <h1 class="name">{{ pokemon.name|capfirst }}</h1>
+            <div class="pokemon-id-wrap">
+                <p>#{{ pokemon.id }}</p>
+            </div>
+        </header>
+
+        <div class="featured-img">
+            {% if pokemon.id > 1 %}
+            <a href="{% url 'detail' pokemon.id|add:-1 %}" class="arrow">
+                <img src="{% static 'assets/chevron_left.svg' %}" alt="previous">
+            </a>
+            {% else %}
+            <span class="arrow" style="opacity: 0.3; pointer-events: none;">
+                 <img src="{% static 'assets/chevron_left.svg' %}" alt="previous">
+            </span>
+            {% endif %}
+
+            <div class="detail-img-wrapper">
+                <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/dream-world/{{ pokemon.id }}.svg" alt="{{ pokemon.name }}">
+            </div>
+
+            <a href="{% url 'detail' pokemon.id|add:1 %}" class="arrow">
+                <img src="{% static 'assets/chevron_right.svg' %}" alt="next">
+            </a>
+        </div>
+
+        <div class="power-wrapper">
+            {% for type in pokemon.types %}
+            <span class="type {{ type.type.name }}">{{ type.type.name|capfirst }}</span>
+            {% endfor %}
+        </div>
+
+        <p class="about-text">About</p>
+        
+        <div class="pokemon-detail-wrapper">
+            <div class="pokemon-detail-wrap">
+                <div class="pokemon-detail">
+                    <img src="{% static 'assets/weight.svg' %}" alt="weight">
+                    <p>{{ pokemon.weight|floatformat:"-1" }} kg</p>
+                </div>
+                <p class="caption-fonts">Weight</p>
+            </div>
+            <div class="pokemon-detail-wrap">
+                <div class="pokemon-detail">
+                    <img src="{% static 'assets/height.svg' %}" alt="height">
+                    <p>{{ pokemon.height|floatformat:"-1" }} m</p>
+                </div>
+                <p class="caption-fonts">Height</p>
+            </div>
+            <div class="pokemon-detail-wrap">
+                <div class="pokemon-detail move">
+                    {% for ability in pokemon.abilities %}
+                    <p>{{ ability.ability.name|replace_hyphens|capfirst }}</p>
+                    {% endfor %}
+                </div>
+                <p class="caption-fonts">Abilities</p>
+            </div>
+        </div>
+
+        <p class="pokemon-description">{{ description|default:"No description available." }}</p>
+        
+        <p class="about-text">Base Stats</p>
+        
+        <div class="stats-wrapper">
+            {% for stat in pokemon.stats %}
+            <div class="stats-wrap" data-stat="{{ stat.stat.name|slugify }}">
+                <p class="stats">{{ stat.stat.name|replace_hyphens|capfirst }}</p>
+                <p>{{ stat.base_stat }}</p>
+                <progress value="{{ stat.base_stat }}" max="200" class="progress-bar"></progress>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</body>
+</html>
